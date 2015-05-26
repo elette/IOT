@@ -4,28 +4,31 @@ use com.ibm.streams.db::* ;
 
 composite Event
 {
-	type ReferenceType = tuple <int32 quality, rstring book>;
-	BookInfo = tuple<rstring title, list<rstring> authors, decimal32 price, list<ReferenceType> references>;
+	param
+                expression<rstring> $EventServer : "121.0.140.181" ;
 
 	graph
-		stream<blob xmlData> FileSource_test = FileSource()
+		stream<blob xmlData> Socket = TCPSource()
 		{
 			param
-				file : "test.xml" ;
-				format : block ;
+				role : server ;
+				//address : $EventServer ;
+				port : 55002u;
+				format : block;
 				blockSize : 1024u ;
+				//reconnectionPolicy : InfiniteRetry;
 		}
 
-		stream<eventSchema> EventX as O = XMLParse(FileSource_test)
+		stream<eventSchema> EventX as O = XMLParse(Socket)
 		{
 			param   
 				xmlInput : xmlData ;
-				trigger : "/event" ;
+				trigger : "/X" ;
 				parsing : permissive;     // log and ignore errors
 			output O : 
 				DT = getDT(getTimestamp()),
-				DEVICE_ID = XPath ("device/text()"),
-				EVENT_CODE = XPath ("eventcode/text()");
+				DEVICE_ID = XPath ("ID/text()"),
+				EVENT_CODE = XPath ("EM/text()");
 		}
 
     () as Nill = FileSink(EventX) {

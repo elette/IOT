@@ -1,0 +1,28 @@
+namespace IOT;
+
+composite LogSim
+{
+	param
+		expression<rstring> $logPath : "test.xml" ;
+		expression<float64> $rate : 1.0 ;
+		expression<rstring> $EventServer : "121.0.140.181" ;
+	graph
+		stream<blob xmlData> LogFile = FileSource()
+		{
+			param
+				file : $logPath ;
+				format : block ;
+                                blockSize : 1024u ;
+		}
+
+		() as TcpLog = TCPSink(LogFile)
+		{
+			param
+				role : client ;
+				address : $EventServer ;
+				port : 55001u ;
+				format : block ;
+		}
+
+}
+
