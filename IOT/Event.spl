@@ -13,7 +13,7 @@ composite Event
 			param
 				role : server ;
 				//address : $EventServer ;
-				port : 55002u;
+				port : 55001u;
 				format : block;
 				blockSize : 1024u ;
 				//reconnectionPolicy : InfiniteRetry;
