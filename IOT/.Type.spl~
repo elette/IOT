@@ -1,0 +1,15 @@
+namespace IOT;
+
+	type eventSchema = rstring DT, rstring DEVICE_ID, rstring EVENT_CODE  ;
+	
+	type logStreamSchema = rstring LogLine;
+	
+	type sensorSchema = rstring Sensor;
+	
+	public stateful rstring curDT()
+	{
+		//stateful timestamp t = getTimestamp();
+		mutable Sys.tm timetuple= {};
+		time(getTimestamp(), timetuple);
+		return strftime(timetuple, "%Y-%m-%d %H:%M:%S");
+	} 

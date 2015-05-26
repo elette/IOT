@@ -1,0 +1,25 @@
+namespace IOT;
+
+	type eventSchema = rstring DT, rstring DEVICE_ID, rstring EVENT_CODE  ;
+	
+	type sensorSchema = int32 MOVED, int32 ONOFF, int32 ACC_X, int32 ACC_Y, int32 ACC_Z, int32 TEMP, int32 HUMID, int32 CO2, int32 TVOC, int32 ILLUM, int32 MAG_X, int32 MAG_Y, int32 MAG_Z ;
+
+	type logStreamSchema = tuple <rstring DEVICE_ID, int32 BATT, rstring DT, sensorSchema Sensor, list<rstring> SensorList> ;
+
+	type deviceLogSchema = rstring DT, rstring DEVICE_ID, rstring SENSOR_ID, int32 CUR_VALUE ;
+	
+
+	public rstring getDT(timestamp ts)
+	{
+		//stateful timestamp t = getTimestamp();
+		mutable Sys.tm timetuple= {};
+		time(ts, timetuple);
+		return strftime(timetuple, "%Y-%m-%d %H:%M:%S");
+	} 
+
+	public stateful rstring getDir()
+	{
+		mutable Sys.tm timetuple= {};
+		time(getTimestamp(), timetuple);
+		return strftime(timetuple, "%Y/%m/");
+	} 

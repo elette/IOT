@@ -1,0 +1,114 @@
+namespace IOT ;
+
+composite Main
+{
+	graph
+		stream<rstring Dir, rstring File> LogFolders = DirectoryScan()
+		{
+			param
+				directory : "logs/" ;
+			output LogFolders :
+				Dir = Directory() ,
+				File = FilePath() ;
+		}
+
+		() as DirectoryList = Custom(LogFolders as I)
+		{
+			logic onTuple I : println(I);
+		}
+
+		stream<rstring LogFile> LogFiles = DirectoryScan()
+		{
+			param
+				directory : "logs/" ;
+				pattern : ".+\\.log$" ;
+				sortBy : date ;
+			output LogFiles :
+				LogFile = FilePath() ;
+		}
+
+		//() as Tracer = Custom(LogFiles as I) { logic onTuple I : { println(I); }}
+
+		() as FileSink_1 = FileSink(ParsedLog)
+		{
+			param
+				file : "test.out" ;
+				flush : 1u ;
+				format : csv ;
+				separator : "," ;
+		}
+
+		(stream<logStreamSchema> LogStream) as LogFile = FileSource(LogFiles as I)
+		{
+         logic onTuple I:
+         {
+             list<rstring> metrics = getCustomMetricNames ();
+             println("metrics: " + (rstring)metrics);
+             mutable int64 value = 0l;
+             getCustomMetricValue ("nInvalidTuples", value);
+             println("nInvalidTuples: " + (rstring)value);
+             getCustomMetricValue ("nFilesOpened", value);
+             println("nFilesOpened: " + (rstring)value);
+         }
+			param
+				format : line ;
+		}
+
+		stream<logStreamSchema> LogLineSplit as O = Custom(LogStream as I)
+		{
+			logic
+				state :
+				{
+					rstring HEADER = "Connect" ;
+					rstring FOOTER = "Disconnect" ;
+					mutable logStreamSchema Out;
+				}
+
+				onTuple I :
+				{
+					if(findFirst(LogLine, HEADER) < 0 && findFirst(LogLine, FOOTER) < 0)
+					{
+						Out.LogLine = LogLine;
+						submit(Out, O) ;
+					}
+
+					else if (findFirst(LogLine, FOOTER) == 0)
+					{
+						submit(Sys.WindowMarker, O) ;
+					}
+
+				}
+
+		}
+
+		stream<sensorSchema> ParsedLog as O = Custom(LogLineSplit as I)
+		{
+			logic
+				state :
+				{
+					mutable set<sensorSchema> SensoredSet ;
+					mutable sensorSchema Out;
+				}
+
+				onTuple I :
+				{
+					Out.Sensor = LogLine;
+					insertM(SensoredSet, Out) ;
+println(" Set size: " + (rstring)size(SensoredSet) );
+				}
+
+				onPunct I :
+				{
+					for(sensorSchema s in SensoredSet)
+					{
+//println(s);
+						Out = s;
+						submit(Out, O) ;
+					}
+println( "< Submitted > " );
+				}
+
+		}
+
+}
+

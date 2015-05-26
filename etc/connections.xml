@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<st:connections xmlns:st="http://www.ibm.com/xmlns/prod/streams/adapters"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <connection_specifications>
+    <connection_specification name="IOTConnection">
+      <ODBC database="IOTDB" user="db2inst1" password="pass"/>
+    </connection_specification>
+  </connection_specifications>
+  
+  <access_specifications>
+  
+  	 <!-- This access specification is used by the ODBCSource operator in the application -->
+
+	<access_specification name="INSERT_EVENT_HISTORY">
+		<table tablename="EVENT_HISTORY" transaction_batchsize="1" rowset_size="1"/>
+		<uses_connection connection="IOTConnection" />
+		<native_schema>
+			<column name="DT" type="VARCHAR" length="19"/>
+			<column name="DEVICE_ID" type="VARCHAR" length="16"/>
+			<column name="EVENT_CODE" type="VARCHAR" length="4"/>
+		</native_schema> 
+	</access_specification>
+
+	<access_specification name="INSERT_DEVICE_LOG">
+		<table tablename="DEVICE_LOG" transaction_batchsize="1" rowset_size="1"/>
+		<uses_connection connection="IOTConnection" />
+		<native_schema>
+			<column name="DT" type="VARCHAR" length="19"/>
+			<column name="DEVICE_ID" type="VARCHAR" length="16"/>
+			<column name="SENSOR_ID" type="VARCHAR" length="16"/>
+			<column name="CUR_VALUE" type="INTEGER" />
+		</native_schema> 
+	</access_specification>
+
+
+
+	<access_specification name="select_fds_br_info">
+		<query query="SELECT BR_MGT_NO, BR_NM, WGT, SCORE FROM FDS.FDS_BR_INFO" />
+		<uses_connection connection="IOTConnection" />
+		<native_schema>
+			<column name="br_mgt_no" type="INTEGER"/>
+			<column name="br_nm" type="VARCHAR" length="50"/>
+			<column name="wgt" type="DOUBLE"/>
+			<column name="score" type="DOUBLE"/>
+		</native_schema> 
+	</access_specification>
+
+    <access_specification name="read_br_free_regist">
+      <query query="SELECT a.br_mgt_no, a.use_flg, a.trnsfr_tm_frm, a.trnsfr_tm_to, a.trnsfr_amt_frm, a.trnsfr_amt_to, a.the_day_trnsfr_cnt_frm, a.the_day_trnsfr_cnt_to, a.age_frm, a.age_to, (b.wgt * b.score) AS score FROM fds.fds_br_free_regist a, fds.fds_br_info b WHERE a.br_mgt_no = b.br_mgt_no AND a.use_flg = 'Y' AND b.use_flg = 'Y' " />
+      <uses_connection connection="IOTConnection" />
+      <native_schema>
+					<column name="br_mgt_no" type="INTEGER"/>
+					<column name="use_flg" type="CHAR" length="1"/>
+					<column name="trnsfr_tm_frm" type="VARCHAR" length="8"/>
+					<column name="trnsfr_tm_to" type="VARCHAR" length="8"/>
+					<column name="trnsfr_amt_frm" type="BIGINT"/>
+					<column name="trnsfr_amt_to" type="BIGINT"/>
+					<column name="the_day_trnsfr_cnt_frm" type="INTEGER"/>
+					<column name="the_day_trnsfr_cnt_to" type="INTEGER"/>
+					<column name="age_frm" type="INTEGER"/>
+					<column name="age_to" type="INTEGER"/>
+					<column name="score" type="DOUBLE"/>
+      </native_schema> 
+    </access_specification>
+			
+    <access_specification name="read_br_free_one">
+				<query query="SELECT a.br_mgt_no, a.use_flg, a.trnsfr_tm_frm, a.trnsfr_tm_to, a.trnsfr_amt_frm, a.trnsfr_amt_to, a.the_day_trnsfr_cnt_frm, a.the_day_trnsfr_cnt_to, a.age_frm, a.age_to, (b.wgt * b.score) AS score FROM fds.fds_br_free_regist a, fds.fds_br_info b WHERE a.br_mgt_no = b.br_mgt_no AND a.use_flg = 'Y' AND b.use_flg = 'Y' and a.br_mgt_no = ? " />
+				<parameters>
+         <parameter name="br_mgt_no" type="int32" />
+      </parameters>
+				<uses_connection connection="IOTConnection" />
+				<native_schema>
+					<column name="br_mgt_no" type="INTEGER"/>
+					<column name="use_flg" type="CHAR" length="1"/>
+					<column name="trnsfr_tm_frm" type="VARCHAR" length="8"/>
+					<column name="trnsfr_tm_to" type="VARCHAR" length="8"/>
+					<column name="trnsfr_amt_frm" type="BIGINT"/>
+					<column name="trnsfr_amt_to" type="BIGINT"/>
+					<column name="the_day_trnsfr_cnt_frm" type="INTEGER"/>
+					<column name="the_day_trnsfr_cnt_to" type="INTEGER"/>
+					<column name="age_frm" type="INTEGER"/>
+					<column name="age_to" type="INTEGER"/>
+					<column name="score" type="DOUBLE"/>
+				</native_schema> 
+			</access_specification>
+    
+    <access_specification name="read_ref_media">
+      <query query="select atmno, postcode from fds.ref_media" />
+      <uses_connection connection="IOTConnection" />
+      <native_schema>
+        <column name="atmno" type="CHAR" length="5"/>
+        <column name="postcode" type="CHAR" length="5"/>
+      </native_schema> 
+    </access_specification>
+    
+    <access_specification name="read_ref_nat">
+      <query query="select trim(ipaddress) ipaddress, trim(nationcode) nationcode,trim(nationnm) nationnm,riskflag from fds.ref_nat" />
+      <uses_connection connection="IOTConnection" />
+      <native_schema>
+        <column name="ipaddress" 	 type="VARCHAR" length="12"/>
+        <column name="nationcode" 	 type="VARCHAR" length="6"/>
+        <column name="nationnm" 	 type="VARCHAR" length="25"/>
+        <column name="riskflag" 	 type="CHAR" length="1"/>
+      </native_schema> 
+    </access_specification>
+    
+    <access_specification name="R1_select_count_by_amount">
+				<query query="SELECT COUNT(*) AS count FROM fds.tran_info WHERE acct_no = ? AND trnsfr_dt = ? AND tran_amt BETWEEN ? AND ? " />
+				<parameters>
+         <parameter name="acct_no" type="rstring" length="20" />
+         <parameter name="trnsfr_dt" type="rstring" length="10" />
+         <parameter name="trnsfr_amt_frm" type="rstring" length="20" />
+         <parameter name="trnsfr_amt_to" type="rstring" length="20" />
+      </parameters>
+				<uses_connection connection="IOTConnection" />
+				<native_schema>
+					<column name="count" type="INTEGER"/>
+				</native_schema> 
+			</access_specification>
+    
+		<access_specification name="R7_select_party_postcode">
+			<query query="SELECT count(*) as count FROM fds.party_info WHERE cifno = ? AND (  substr(house_zipcd, 1, 2) = ? OR substr(offc_zipcd, 1, 2) = ? ) " />
+			<parameters>
+				<parameter name="cifno" type="rstring" length="20" />
+				<parameter name="house_zipcd" type="rstring" length="2" />
+				<parameter name="offc_zipcd" type="rstring" length="2" />
+			</parameters>
+			<uses_connection connection="IOTConnection" />
+			<native_schema>
+				<column name="count" type="INTEGER"/>
+			</native_schema> 
+		</access_specification>
+			
+	</access_specifications>
+
+</st:connections>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<toolkitModel xmlns="http://www.ibm.com/xmlns/prod/streams/spl/toolkit" productVersion="4.0.0.0" xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:ti="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <toolkit name="IOT" requiredProductVersion="4.0.0.0" version="1.0.0">
+    <description/>
+    <uriTable>
+      <uri index="3" value="IOT/Type.spl"/>
+      <uri index="1" value="IOT/Main.spl"/>
+      <uri index="2" value="IOT/Event.spl"/>
+    </uriTable>
+    <namespace name="IOT">
+      <compositeOp column="11" line="5" name="Main" potentialMain="true" uriIndex="1"/>
+      <compositeOp column="11" line="5" name="Event" potentialMain="true" uriIndex="2">
+        <type column="7" line="7" name="ReferenceType" type="tuple&lt;int32 quality, rstring book>" uriIndex="2"/>
+        <type column="2" line="8" name="BookInfo" type="tuple&lt;rstring title, list&lt;rstring> authors, decimal32 price, list&lt;ReferenceType> references>" uriIndex="2"/>
+      </compositeOp>
+      <function column="2" line="12" name="getDT" native="false" public="true" returnType="rstring" uriIndex="3">
+        <prototype>public rstring getDT(timestamp ts)</prototype>
+        <parameter name="ts" type="timestamp"/>
+      </function>
+      <function column="2" line="20" name="getDir" native="false" public="true" returnType="rstring" stateful="true" uriIndex="3">
+        <prototype>public stateful rstring getDir()</prototype>
+      </function>
+      <type column="7" line="3" name="eventSchema" static="true" type="rstring DT, rstring DEVICE_ID, rstring EVENT_CODE" uriIndex="3"/>
+      <type column="7" line="5" name="sensorSchema" static="true" type="int32 MOVED, int32 ONOFF, int32 ACC_X, int32 ACC_Y, int32 ACC_Z, int32 TEMP, int32 HUMID, int32 CO2, int32 TVOC, int32 ILLUM, int32 MAG_X, int32 MAG_Y, int32 MAG_Z" uriIndex="3"/>
+      <type column="7" line="7" name="logStreamSchema" static="true" type="tuple&lt;rstring DEVICE_ID, int32 BATT, rstring DT, sensorSchema Sensor, list&lt;rstring> SensorList>" uriIndex="3"/>
+      <type column="7" line="9" name="deviceLogSchema" static="true" type="rstring DT, rstring DEVICE_ID, rstring SENSOR_ID, int32 CUR_VALUE" uriIndex="3"/>
+    </namespace>
+    <dependency>
+      <common:name>com.ibm.streams.db</common:name>
+      <common:version>1.5.0</common:version>
+    </dependency>
+    <sabFiles>
+      <ti:include path="toolkit.xml" root="toolkitDir"/>
+      <ti:include path="impl/java/lib/**" root="toolkitDir"/>
+      <ti:include path="impl/java/bin/**" root="toolkitDir"/>
+      <ti:include path="impl/bin/**" root="toolkitDir"/>
+      <ti:include path="impl/lib/**" root="toolkitDir"/>
+      <ti:include path="impl/nl/*.dat" root="toolkitDir"/>
+      <ti:include path="etc/**" root="toolkitDir"/>
+      <ti:include path="lib/**" root="toolkitDir"/>
+      <ti:include path="nl/**" root="toolkitDir"/>
+      <ti:include path="opt/**" root="toolkitDir"/>
+    </sabFiles>
+  </toolkit>
+
+</toolkitModel>

@@ -1,0 +1,44 @@
+namespace IOT ;
+
+use com.ibm.streams.db::* ;
+
+composite Event
+{
+	type ReferenceType = tuple <int32 quality, rstring book>;
+	BookInfo = tuple<rstring title, list<rstring> authors, decimal32 price, list<ReferenceType> references>;
+
+	graph
+		stream<blob xmlData> FileSource_test = FileSource()
+		{
+			param
+				file : "test.xml" ;
+				format : block ;
+				blockSize : 1024u ;
+		}
+
+		stream<eventSchema> EventX as O = XMLParse(FileSource_test)
+		{
+			param   
+				xmlInput : xmlData ;
+				trigger : "/event" ;
+				parsing : permissive;     // log and ignore errors
+			output O : 
+				DT = curDT(),
+				DEVICE_ID = XPath ("device/text()"),
+				EVENT_CODE = XPath ("eventcode/text()");
+		}
+
+    () as Nill = FileSink(EventX) {
+        param file : "Results.txt";
+    }
+		() as EventInsert = ODBCAppend(EventX)
+		{
+			param
+				connectionDocument : "./etc/connections.xml" ;
+				connection : "IOTConnection" ;
+				access : "INSERT_EVENT_HISTORY" ;
+				commitOnPunctuation : true ;
+		}
+
+}
+
