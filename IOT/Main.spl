@@ -4,11 +4,15 @@ use com.ibm.streams.db::*;
 
 composite Main
 {
+	param
+                //expression<rstring> $LogPath : "/work/bin/log/" ;
+                expression<rstring> $LogPath : "logs/" ;
+
 	graph
 		stream<rstring Dir, rstring File> LogFolders = DirectoryScan()
 		{
 			param
-				directory : "logs/" + getDir();
+				directory : $LogPath + getDir();
 			output LogFolders :
 				Dir = Directory() ,
 				File = FilePath() ;
@@ -22,7 +26,7 @@ composite Main
 		stream<rstring LogFile> LogFiles = DirectoryScan()
 		{
 			param
-				directory : "logs/" + getDir() ;
+				directory : $LogPath + getDir() ;
 				pattern : ".+\\.log$" ;
 				sortBy : date ;
 			output LogFiles :
@@ -31,7 +35,7 @@ composite Main
 
 		//() as Tracer = Custom(LogFiles as I) { logic onTuple I : { println(I); }}
 
-		() as FileSink_1 = FileSink(ParsedLog)
+		() as FileSink_1 = FileSink(ParsedSensorLog)
 		{
 			param
 				file : "test.out" ;
@@ -42,6 +46,7 @@ composite Main
 
 		(stream<rstring LogLine> LogStream) as LogFile = FileSource(LogFiles as I)
 		{
+/*
          logic onTuple I:
          {
              list<rstring> metrics = getCustomMetricNames ();
@@ -52,6 +57,7 @@ composite Main
              getCustomMetricValue ("nFilesOpened", value);
              println("nFilesOpened: " + (rstring)value);
          }
+*/
 			param
 				format : line ;
 		}
@@ -61,8 +67,8 @@ composite Main
 			logic
 				state :
 				{
-					rstring HEADER = "Connect" ;
-					rstring FOOTER = "Disconnect" ;
+					rstring HEADER = "<X>" ;
+					rstring FOOTER = "</X>" ;
 					mutable logStreamSchema Out;
 					mutable list<rstring> tempStr;
 					mutable sensorSchema tempSensor;
@@ -75,13 +81,21 @@ composite Main
 appLog(Log.info, "test log..");
 println(">>>> logging..");
 						 tempStr = csvTokenize(LogLine);
-						// DEVICE_ID
-						Out.DEVICE_ID = trim(tempStr[1], "'");
-						// BATT
-						Out.BATT = (int32)strtoll(trim(tempStr[4], "'"),16);
 						// DT
-						Out.DT = tempStr[size(tempStr)-1];
+						Out.Device.DT = tempStr[0];
+						// CARRIER
+						Out.Device.CARRIER = tempStr[1];
+						// STATUS
+						Out.Device.STATUS = tempStr[2];
+						// DEVICE_ID
+						//Out.Device.DEVICE_ID = trim(tempStr[3], "'");
+						Out.Device.DEVICE_ID = tempStr[3];
+						// BATT
+						Out.Device.BATT = (int32)strtoll(trim(tempStr[4], "'"),16);
 println("BATT : " + (rstring)strtoll(trim(tempStr[4], "'"),16));
+						// EQUIP
+						Out.Device.EQUIP = tempStr[5];
+
 						tempStr = csvTokenize(trim(trim(regexMatch(LogLine, "\\[.+\\]")[0], "]"), "["));
 						Out.SensorList = tempStr;
 println("size of [xxx] : " + (rstring)size(tempStr));
@@ -105,59 +119,85 @@ println(tempStr);
 */
 
 						submit(Out, O) ;
+						submit(Sys.WindowMarker, O) ;
 					}
 
+/*
 					else if (findFirst(LogLine, FOOTER) == 0)
 					{
 						submit(Sys.WindowMarker, O) ;
 					}
+*/
 
 				}
 
 		}
 
-		stream<deviceLogSchema> ParsedLog as O = Custom(LogLineSplit as I)
+		(stream<deviceLogSchema> ParsedDeviceLog as O1; stream<sensorLogSchema> ParsedSensorLog as O2)  = Custom(LogLineSplit as I)
 		{
 			logic
 				state :
 				{
-					mutable set<deviceLogSchema> SensoredSet ;
-					mutable deviceLogSchema LogSensor;
+					mutable deviceLogSchema LogDevice ;
+					mutable set<sensorLogSchema> SensoredSet ;
+					mutable sensorLogSchema LogSensor;
+					mutable rstring strDT ;
 
 					list<rstring> SensorID = ["MOVED", "ONOFF", "ACC_X", "ACC_Y", "ACC_Z", "TEMP", "HUMID", "CO2", "TVOC", "ILLUM", "MAG_X", "MAG_Y", "MAG_Z"];
 				}
 
 				onTuple I :
 				{
-					LogSensor.DT = getDT(toTimestamp(Sys.YYYYMMDDhhmmss, DT)) ;
-					LogSensor.DEVICE_ID = DEVICE_ID ;
+					clearM(SensoredSet) ;
+					strDT = getDT(toTimestamp(Sys.YYYYMMDDhhmmss, Device.DT)) ;
+
+					LogDevice.DT = strDT ;
+					LogDevice.DEVICE_ID = Device.DEVICE_ID ;
+					LogDevice.CARRIER = Device.CARRIER ;
+					LogDevice.STATUS = Device.STATUS ;
+					LogDevice.BATT = Device.BATT ;
+					LogDevice.EQUIP = Device.EQUIP ;
+
+					LogSensor.DT = strDT ;
+					LogSensor.DEVICE_ID = Device.DEVICE_ID ;
 					for (int32 i in range(SensorID)) 
 					{
 						LogSensor.SENSOR_ID = SensorID[i];
-						LogSensor.CUR_VALUE = (int32)strtoll(SensorList[i],0);
+						LogSensor.CUR_VALUE = (int32)strtoll(SensorList[i],16);
 						insertM(SensoredSet, LogSensor) ;
 					}
+println(" Device: " + (rstring)LogDevice );
 println(" Set size: " + (rstring)size(SensoredSet) );
 				}
 
 				onPunct I :
 				{
-					for(deviceLogSchema s in SensoredSet)
+					submit(LogDevice, O1);
+					for(sensorLogSchema s in SensoredSet)
 					{
 //println(s);
-						submit(s, O) ;
+						submit(s, O2) ;
 					}
 println( "< Submitted > " );
 				}
 
 		}
 
-		() as LogInsert = ODBCAppend(ParsedLog)
+		() as LogDeviceInsert = ODBCAppend(ParsedDeviceLog)
 		{
 			param
 				connectionDocument : "./etc/connections.xml" ;
 				connection : "IOTConnection" ;
 				access : "INSERT_DEVICE_LOG" ;
+				commitOnPunctuation : true ;
+		}
+
+		() as LogSensorInsert = ODBCAppend(ParsedSensorLog)
+		{
+			param
+				connectionDocument : "./etc/connections.xml" ;
+				connection : "IOTConnection" ;
+				access : "INSERT_SENSOR_LOG" ;
 				commitOnPunctuation : true ;
 		}
 

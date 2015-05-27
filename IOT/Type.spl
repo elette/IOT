@@ -4,9 +4,11 @@ namespace IOT;
 	
 	type sensorSchema = int32 MOVED, int32 ONOFF, int32 ACC_X, int32 ACC_Y, int32 ACC_Z, int32 TEMP, int32 HUMID, int32 CO2, int32 TVOC, int32 ILLUM, int32 MAG_X, int32 MAG_Y, int32 MAG_Z ;
 
-	type logStreamSchema = tuple <rstring DEVICE_ID, int32 BATT, rstring DT, sensorSchema Sensor, list<rstring> SensorList> ;
+	type deviceLogSchema = rstring DT, rstring DEVICE_ID, rstring CARRIER, rstring STATUS, int32 BATT, rstring EQUIP ;
 
-	type deviceLogSchema = rstring DT, rstring DEVICE_ID, rstring SENSOR_ID, int32 CUR_VALUE ;
+	type logStreamSchema = tuple<deviceLogSchema Device, sensorSchema Sensor, list<rstring> SensorList> ;
+
+	type sensorLogSchema = rstring DT, rstring DEVICE_ID, rstring SENSOR_ID, int32 CUR_VALUE ;
 	
 
 	public rstring getDT(timestamp ts)
