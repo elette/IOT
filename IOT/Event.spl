@@ -31,9 +31,10 @@ composite Event
 				EVENT_CODE = XPath ("EM/text()");
 		}
 
-    () as Nill = FileSink(EventX) {
-        param file : "Results.txt";
-    }
+		() as EventOut = FileSink(EventX) {
+			param file : "event.out";
+		}
+
 		() as EventInsert = ODBCAppend(EventX)
 		{
 			param

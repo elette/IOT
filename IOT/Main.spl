@@ -9,6 +9,7 @@ composite Main
                 expression<rstring> $LogPath : "logs/" ;
 
 	graph
+/*
 		stream<rstring Dir, rstring File> LogFolders = DirectoryScan()
 		{
 			param
@@ -22,6 +23,7 @@ composite Main
 		{
 			logic onTuple I : println(I);
 		}
+*/
 
 		stream<rstring LogFile> LogFiles = DirectoryScan()
 		{
@@ -35,10 +37,19 @@ composite Main
 
 		//() as Tracer = Custom(LogFiles as I) { logic onTuple I : { println(I); }}
 
-		() as FileSink_1 = FileSink(ParsedSensorLog)
+		() as DeviceOut = FileSink(ParsedDeviceLog)
 		{
 			param
-				file : "test.out" ;
+				file : "device.out" ;
+				flush : 1u ;
+				format : csv ;
+				separator : "," ;
+		}
+
+		() as SensorOut = FileSink(ParsedSensorLog)
+		{
+			param
+				file : "sensor.out" ;
 				flush : 1u ;
 				format : csv ;
 				separator : "," ;
