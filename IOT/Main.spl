@@ -5,8 +5,8 @@ use com.ibm.streams.db::*;
 composite Main
 {
 	param
-                //expression<rstring> $LogPath : "/work/bin/log/" ;
-                expression<rstring> $LogPath : "logs/" ;
+                expression<rstring> $LogPath : "/work/bin/log/" ;
+                //expression<rstring> $LogPath : "logs/" ;
 
 	graph
 /*
@@ -80,6 +80,7 @@ composite Main
 				{
 					rstring HEADER = "<X>" ;
 					rstring FOOTER = "</X>" ;
+					rstring MATCH = "LG" ;
 					mutable logStreamSchema Out;
 					mutable list<rstring> tempStr;
 					mutable sensorSchema tempSensor;
@@ -87,7 +88,8 @@ composite Main
 
 				onTuple I :
 				{
-					if(findFirst(LogLine, HEADER) < 0 && findFirst(LogLine, FOOTER) < 0)
+					//if(findFirst(LogLine, HEADER) < 0 && findFirst(LogLine, FOOTER) < 0)
+					if(findFirst(LogLine, MATCH) > -1 && findFirst(LogLine, ":") == -1)
 					{
 appLog(Log.info, "test log..");
 println(">>>> logging..");
