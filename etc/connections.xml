@@ -27,6 +27,19 @@
 		<native_schema>
 			<column name="DT" type="VARCHAR" length="19"/>
 			<column name="DEVICE_ID" type="VARCHAR" length="16"/>
+			<column name="CARRIER" type="VARCHAR" length="2"/>
+			<column name="STATUS" type="VARCHAR" length="2"/>
+			<column name="BATT" type="INTEGER" />
+			<column name="EQUIP" type="VARCHAR" length="4"/>
+		</native_schema> 
+	</access_specification>
+
+	<access_specification name="INSERT_SENSOR_LOG">
+		<table tablename="SENSOR_LOG" transaction_batchsize="1" rowset_size="1"/>
+		<uses_connection connection="IOTConnection" />
+		<native_schema>
+			<column name="DT" type="VARCHAR" length="19"/>
+			<column name="DEVICE_ID" type="VARCHAR" length="16"/>
 			<column name="SENSOR_ID" type="VARCHAR" length="16"/>
 			<column name="CUR_VALUE" type="INTEGER" />
 		</native_schema> 
