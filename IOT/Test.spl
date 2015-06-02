@@ -1,0 +1,43 @@
+namespace IOT ;
+
+use com.ibm.streams.db::*;
+
+composite Test
+{
+        param
+                //expression<rstring> $LogPath : "/work/bin/log/" ;
+                expression<rstring> $LogPath : "logs/" ;
+
+        graph
+                //stream<rstring Dir, rstring File, uint64 Atime, uint64 Ctime, uint64 Mtime> LogFolders = DirectoryScan()
+                stream<rstring File>LogFolders = DirectoryScan()
+                {
+                        param
+                                directory : $LogPath + getDir();
+                                pattern : ".+\\.log$" ;
+				//moveToDirectory : $LogPath + getDir() + "bak/" + getDT(getTimestamp()) + "/" ;
+/*
+                        output LogFolders :
+                                Dir = Directory() ,
+                                File = FilePath() ,
+                                Atime = Atime() ,
+                                Ctime = Ctime() ,
+                                Mtime = Mtime() ;
+*/
+                }
+
+                stream<rstring File> Files as O = FileSource(LogFolders as I)
+                {
+			param
+			format : line ;
+                }
+
+                () as Out = FileSink(Files as I)
+                {
+			param 
+			file : "t1.out" ;
+			format : line ;
+			flush : 1u ;
+                }
+
+}

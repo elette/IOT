@@ -10,32 +10,49 @@ composite Main
 
 	graph
 /*
-		stream<rstring Dir, rstring File> LogFolders = DirectoryScan()
+		stream<rstring Dir, rstring File, uint64 Atime, uint64 Ctime, uint64 Mtime> LogFolders = DirectoryScan()
 		{
 			param
 				directory : $LogPath + getDir();
 			output LogFolders :
 				Dir = Directory() ,
-				File = FilePath() ;
+				File = FilePath() ,
+				Atime = Atime() ,
+				Ctime = Ctime() ,
+				Mtime = Mtime() ;
 		}
 
 		() as DirectoryList = Custom(LogFolders as I)
 		{
 			logic onTuple I : println(I);
 		}
-*/
 
-		stream<rstring LogFile> LogFiles = DirectoryScan()
+		stream<rstring File, uint64 Atime, uint64 Ctime, uint64 Mtime> Files = DirectoryScan()
 		{
 			param
 				directory : $LogPath + getDir() ;
 				pattern : ".+\\.log$" ;
 				sortBy : date ;
-			output LogFiles :
-				LogFile = FilePath() ;
+			output Files :
+				File = FilePath() ,
+                                Atime = Atime() ,
+                                Ctime = Ctime() ,
+                                Mtime = Mtime() ;
 		}
 
 		//() as Tracer = Custom(LogFiles as I) { logic onTuple I : { println(I); }}
+
+                stream<rstring LogFile> LogFiles as O = Custom(Files as I)
+                {
+                        logic onTuple I :
+                        {
+                                if ( Atime == Ctime )
+                                {
+                                        submit({LogFile=File} , O);
+                                }
+                        }
+                }
+*/
 
 		() as DeviceOut = FileSink(ParsedDeviceLog)
 		{
@@ -55,7 +72,8 @@ composite Main
 				separator : "," ;
 		}
 
-		(stream<rstring LogLine> LogStream) as LogFile = FileSource(LogFiles as I)
+		//(stream<rstring LogLine> LogStream) as LogFile = FileSource(LogFiles as I)
+		(stream<rstring LogLine> LogStream) as LogFile = FileSource()
 		{
 /*
          logic onTuple I:
@@ -70,7 +88,10 @@ composite Main
          }
 */
 			param
+				file : $LogPath + getTodayFile() + ".log" ;
 				format : line ;
+				hotFile : true ;
+				ignoreOpenErrors : true ;
 		}
 
 		stream<logStreamSchema> LogLineSplit as O = Custom(LogStream as I)
@@ -161,7 +182,6 @@ println(tempStr);
 
 				onTuple I :
 				{
-					clearM(SensoredSet) ;
 					strDT = getDT(toTimestamp(Sys.YYYYMMDDhhmmss, Device.DT)) ;
 
 					LogDevice.DT = strDT ;
@@ -171,6 +191,7 @@ println(tempStr);
 					LogDevice.BATT = Device.BATT ;
 					LogDevice.EQUIP = Device.EQUIP ;
 
+					clearM(SensoredSet) ;
 					LogSensor.DT = strDT ;
 					LogSensor.DEVICE_ID = Device.DEVICE_ID ;
 					for (int32 i in range(SensorID)) 
@@ -185,6 +206,7 @@ println(" Set size: " + (rstring)size(SensoredSet) );
 
 				onPunct I :
 				{
+println(">>>> Insert Device log..." + (rstring)LogDevice);
 					submit(LogDevice, O1);
 					for(sensorLogSchema s in SensoredSet)
 					{

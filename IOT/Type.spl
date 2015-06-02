@@ -25,3 +25,10 @@ namespace IOT;
 		time(getTimestamp(), timetuple);
 		return strftime(timetuple, "%Y/%m/");
 	} 
+
+	public stateful rstring getTodayFile()
+	{
+		mutable Sys.tm timetuple= {};
+		time(getTimestamp(), timetuple);
+		return strftime(timetuple, "%Y/%m/%Y%m%d");
+	} 

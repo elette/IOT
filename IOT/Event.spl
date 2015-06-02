@@ -19,6 +19,7 @@ composite Event
 				//reconnectionPolicy : InfiniteRetry;
 		}
 
+		@view(name = "EventView", port = EventX, sampleSize = 1, bufferSize = 10)
 		stream<eventSchema> EventX as O = XMLParse(Socket)
 		{
 			param   

@@ -1,0 +1,29 @@
+namespace IOT ;
+
+use com.ibm.streams.db::*;
+
+composite Test2
+{
+        param
+                //expression<rstring> $LogPath : "/work/bin/log/" ;
+                expression<rstring> $LogPath : "logs/" ;
+
+        graph
+                stream<rstring File> Files as O = FileSource()
+                {
+                        param
+			file : $LogPath + getTodayFile() + ".log" ;
+                        format : line ;
+			hotFile : true ;
+                }
+
+                () as Out = FileSink(Files as I)
+                {
+                        param
+                        file : "t1.out" ;
+                        format : line ;
+                        flush : 1u ;
+                }
+
+}
+
