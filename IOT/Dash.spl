@@ -2,91 +2,17 @@ namespace IOT ;
 
 use com.ibm.streams.db::*;
 
-composite Main
+composite Dash
 {
 	param
                 expression<rstring> $LogPath : "/work/bin/log/" ;
                 //expression<rstring> $LogPath : "logs/" ;
 
 	graph
-/*
-		stream<rstring Dir, rstring File, uint64 Atime, uint64 Ctime, uint64 Mtime> LogFolders = DirectoryScan()
-		{
-			param
-				directory : $LogPath + getDir();
-			output LogFolders :
-				Dir = Directory() ,
-				File = FilePath() ,
-				Atime = Atime() ,
-				Ctime = Ctime() ,
-				Mtime = Mtime() ;
-		}
 
-		() as DirectoryList = Custom(LogFolders as I)
-		{
-			logic onTuple I : println(I);
-		}
 
-		stream<rstring File, uint64 Atime, uint64 Ctime, uint64 Mtime> Files = DirectoryScan()
-		{
-			param
-				directory : $LogPath + getDir() ;
-				pattern : ".+\\.log$" ;
-				sortBy : date ;
-			output Files :
-				File = FilePath() ,
-                                Atime = Atime() ,
-                                Ctime = Ctime() ,
-                                Mtime = Mtime() ;
-		}
-
-		//() as Tracer = Custom(LogFiles as I) { logic onTuple I : { println(I); }}
-
-                stream<rstring LogFile> LogFiles as O = Custom(Files as I)
-                {
-                        logic onTuple I :
-                        {
-                                if ( Atime == Ctime )
-                                {
-                                        submit({LogFile=File} , O);
-                                }
-                        }
-                }
-*/
-
-		() as DeviceOut = FileSink(ParsedDeviceLog)
-		{
-			param
-				file : "device.out" ;
-				flush : 1u ;
-				format : csv ;
-				separator : "," ;
-		}
-
-		() as SensorOut = FileSink(ParsedSensorLog)
-		{
-			param
-				file : "sensor.out" ;
-				flush : 1u ;
-				format : csv ;
-				separator : "," ;
-		}
-
-		//(stream<rstring LogLine> LogStream) as LogFile = FileSource(LogFiles as I)
 		(stream<rstring LogLine> LogStream) as LogFile = FileSource()
 		{
-/*
-         logic onTuple I:
-         {
-             list<rstring> metrics = getCustomMetricNames ();
-             println("metrics: " + (rstring)metrics);
-             mutable int64 value = 0l;
-             getCustomMetricValue ("nInvalidTuples", value);
-             println("nInvalidTuples: " + (rstring)value);
-             getCustomMetricValue ("nFilesOpened", value);
-             println("nFilesOpened: " + (rstring)value);
-         }
-*/
 			param
 				file : $LogPath + getTodayFile() + ".log" ;
 				format : line ;
@@ -167,8 +93,6 @@ println(tempStr);
 
 		}
 
-		@view(name = "DeviceView", port = ParsedDeviceLog, sampleSize = 10, bufferSize = 100)
-		@view(name = "SensorView", port = ParsedSensorLog, sampleSize = 10, bufferSize = 100)
 		(stream<deviceLogSchema> ParsedDeviceLog as O1; stream<sensorLogSchema> ParsedSensorLog as O2)  = Custom(LogLineSplit as I)
 		{
 			logic
@@ -223,8 +147,8 @@ println( "< Submitted > " );
 		() as LogDeviceInsert = ODBCAppend(ParsedDeviceLog)
 		{
 			param
-				connectionDocument : "./etc/connections.xml" ;
-				connection : "IOTConnection" ;
+				connectionDocument : "./etc/connections_dash.xml" ;
+				connection : "DashConnection" ;
 				access : "INSERT_DEVICE_LOG" ;
 				commitOnPunctuation : true ;
 		}
@@ -232,8 +156,8 @@ println( "< Submitted > " );
 		() as LogSensorInsert = ODBCAppend(ParsedSensorLog)
 		{
 			param
-				connectionDocument : "./etc/connections.xml" ;
-				connection : "IOTConnection" ;
+				connectionDocument : "./etc/connections_dash.xml" ;
+				connection : "DashConnection" ;
 				access : "INSERT_SENSOR_LOG" ;
 				commitOnPunctuation : true ;
 		}
