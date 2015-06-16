@@ -119,7 +119,8 @@ composite Main
 		(stream<deviceLogSchema> ParsedDeviceLog as O1 ; 
 			stream<sensorLogSchema>	ParsedSensorLog as O2 ; 
 			stream<deviceLogSchema> ParsedBaseDeviceLog as B1 ; 
-			stream<sensorLogSchema>	ParsedBaseSensorLog as B2) = Custom(LogLineSplit as I)
+			stream<sensorLogSchema>	ParsedBaseSensorLog as B2 ;
+			stream<deviceLogSchema>	ParsedBulkLog as K1 ) = Custom(LogLineSplit as I)
 		{
 			logic
 				state :
@@ -142,37 +143,79 @@ composite Main
 					LogDevice.BATT = Device.BATT ;
 					LogDevice.EQUIP = Device.EQUIP ;
 					clearM(SensoredSet) ;
-					LogSensor.DT = strDT ;
-					LogSensor.DEVICE_ID = Device.DEVICE_ID ;
-					for(int32 i in range(SensorID))
-					{
-						LogSensor.SENSOR_ID = SensorID [ i ] ;
-						LogSensor.CUR_VALUE =(int32) strtoll(SensorList [ i ], 16) ;
-						insertM(SensoredSet, LogSensor) ;
+					
+					if (LogDevice.STATUS != "67") {
+						LogSensor.DT = strDT ;
+						LogSensor.DEVICE_ID = Device.DEVICE_ID ;
+						for(int32 i in range(SensorID))
+						{
+							LogSensor.SENSOR_ID = SensorID [ i ] ;
+							LogSensor.CUR_VALUE =(int32) strtoll(SensorList [ i ], 16) ;
+							insertM(SensoredSet, LogSensor) ;
+						}
+	
+						println(" Device: " +(rstring) LogDevice) ;
+						println(" Set size: " +(rstring) size(SensoredSet)) ;
 					}
-
-					println(" Device: " +(rstring) LogDevice) ;
-					println(" Set size: " +(rstring) size(SensoredSet)) ;
 				}
 
 				onPunct I :
 				{
-					println(">>>> Insert Device log..." +(rstring) LogDevice) ;
-					submit(LogDevice, O1) ;
-					if (LogDevice.STATUS == "88") submit(LogDevice, B1) ;
-					for(sensorLogSchema s in SensoredSet)
-					{
-					//println(s);
-						submit(s, O2) ;
-						if (LogDevice.STATUS == "88") submit(s, B2) ;
+					if (LogDevice.STATUS == "67") {
+						println(">>>> Insert Bulk log..." +(rstring) LogDevice) ;
+						submit(LogDevice, K1) ;
+						println("< Submitted > - Bulk Device... ") ;
 					}
-
-					println("< Submitted > ") ;
+					else {
+						println(">>>> Insert Device log..." +(rstring) LogDevice) ;
+						submit(LogDevice, O1) ;
+						if (LogDevice.STATUS == "88") submit(LogDevice, B1) ;
+						for(sensorLogSchema s in SensoredSet)
+						{
+						//println(s);
+							submit(s, O2) ;
+							if (LogDevice.STATUS == "88") submit(s, B2) ;
+						}
+	
+						println("< Submitted > ") ;
+					}
 				}
 
 		}
 
-		() as LogDeviceInsert = ODBCAppend(ParsedDeviceLog)
+		(stream<deviceLogSchema> BulkDeviceLog as O1; stream<deviceLogSchema> BulkSensorLog as O2) = Custom(ParsedBulkLog as I)
+		{
+			logic
+				state :
+				{
+					mutable deviceLogSchema LogDevice ;
+					mutable rstring strDT ;
+					mutable uint32 i = 0u ;
+				}
+				onTuple I :
+				{
+					LogDevice.DEVICE_ID = DEVICE_ID ;
+					LogDevice.CARRIER = CARRIER ;
+					LogDevice.STATUS = STATUS ;
+					LogDevice.BATT = BATT ;
+					LogDevice.EQUIP = EQUIP ;
+					println("< Entering > - BulkSensor.. ") ;
+					i = 0u ;
+					while ( i < 60u )
+					{
+						strDT = getDT(add(toTimestamp(Sys.YYYY_MM_DD_hh_mm_ss, DT), (float64)i*60.0f));
+						LogDevice.DT = strDT ;
+						submit(LogDevice, O1) ;
+						submit(LogDevice, O2) ;
+						i++ ;
+					
+					}
+					println("< Submitted > - BulkSensor.. ") ;
+				}
+				
+		}
+		
+		() as LogDeviceInsert = ODBCAppend(ParsedDeviceLog, BulkDeviceLog)
 		{
 			param
 				connectionDocument : "./etc/connections.xml" ;
@@ -199,7 +242,9 @@ composite Main
 				access : "BASE_DEVICE_LOG" ;
 				commitOnPunctuation : true ;
 				DEVICE_ID : DEVICE_ID;
+				CARRIER : CARRIER;
 				BATT : BATT;
+				EQUIP : EQUIP;
 				
 		}
 
@@ -214,6 +259,18 @@ composite Main
 				DEVICE_ID : DEVICE_ID;
 				SENSOR_ID : SENSOR_ID;
 				BASE_VALUE : CUR_VALUE;
+		}
+
+		// SENSOR_BULK
+		stream<deviceLogSchema> BulkSenorInsert = ODBCRun(BulkSensorLog)
+		{
+			param
+				connectionDocument : "./etc/connections.xml" ;
+				connection : "IOTConnection" ;
+				access : "BULK_SENSOR_LOG" ;
+				commitOnPunctuation : true ;
+				DT : DT ;
+				DEVICE_ID : DEVICE_ID ;
 		}
 
 

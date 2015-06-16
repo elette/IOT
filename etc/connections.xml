@@ -45,6 +45,50 @@
 		</native_schema> 
 	</access_specification>
 
+	<access_specification name="BASE_DEVICE_LOG">
+		<statement statement="MERGE INTO DEVICE_BASE AS T USING (VALUES(?)) AS S(DEVICE_ID) ON T.DEVICE_ID = S.DEVICE_ID WHEN MATCHED THEN UPDATE SET CARRIER = ?, BATT = ?, EQUIP = ? WHEN NOT MATCHED THEN INSERT (DEVICE_ID, CARRIER, BATT, EQUIP) VALUES (?, ?, ?, ?)" rowset_size="1" transaction_batchsize="1"/>
+		<parameters>
+			<parameter name="DEVICE_ID" type="rstring" length="16" />
+			<parameter name="CARRIER" type="rstring" length="2" />
+			<parameter name="BATT" type="int32" />
+			<parameter name="EQUIP" type="rstring" length="4" />
+			<parameter name="DEVICE_ID" type="rstring" length="16" />
+			<parameter name="CARRIER" type="rstring" length="2" />
+			<parameter name="BATT" type="int32" />
+			<parameter name="EQUIP" type="rstring" length="4" />
+		</parameters>
+		<uses_connection connection="IOTConnection" />
+	</access_specification>
+
+	<access_specification name="BASE_SENSOR_LOG">
+		<statement statement="MERGE INTO SENSOR_BASE AS T USING (VALUES(?, ?)) AS S(DEVICE_ID, SENSOR_ID) ON T.DEVICE_ID = S.DEVICE_ID AND T.SENSOR_ID = S.SENSOR_ID  WHEN MATCHED THEN UPDATE SET BASE_VALUE = ? WHEN NOT MATCHED THEN INSERT (DEVICE_ID, SENSOR_ID, BASE_VALUE) VALUES (?, ?, ?)" rowset_size="1" transaction_batchsize="1"/>
+		<parameters>
+			<parameter name="DEVICE_ID" type="rstring" length="16" />
+			<parameter name="SENSOR_ID" type="rstring" length="16" />
+			<parameter name="BASE_VALUE" type="int32" />
+			<parameter name="DEVICE_ID" type="rstring" length="16" />
+			<parameter name="SENSOR_ID" type="rstring" length="16" />
+			<parameter name="BASE_VALUE" type="int32" />
+		</parameters>
+		<uses_connection connection="IOTConnection" />
+		<native_schema>
+			<column name="DEVICE_ID" type="VARCHAR" length="16"/>
+			<column name="SENSOR_ID" type="VARCHAR" length="16"/>
+			<column name="BASE_VALUE" type="INTEGER" />
+		</native_schema> 
+	</access_specification>
+
+	<access_specification name="BULK_SENSOR_LOG">
+		<statement statement="INSERT INTO SENSOR_LOG SELECT ?, DEVICE_ID, SENSOR_ID, BASE_VALUE FROM SENSOR_BASE WHERE DEVICE_ID = ? AND (DEVICE_ID, SENSOR_ID) NOT IN (SELECT DEVICE_ID, SENSOR_ID FROM SENSOR_LOG WHERE DT = ? AND DEVICE_ID = ?)" rowset_size="1" transaction_batchsize="1"/>
+		<parameters>
+			<parameter name="DT" type="rstring" length="19" />
+			<parameter name="DEVICE_ID" type="rstring" length="16" />
+			<parameter name="DT" type="rstring" length="19" />
+			<parameter name="DEVICE_ID" type="rstring" length="16" />
+		</parameters>
+		<uses_connection connection="IOTConnection" />
+	</access_specification>
+
 
 
 	<access_specification name="select_fds_br_info">
