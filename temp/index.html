@@ -1,0 +1,100 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>InfoSphere REST API Sample - View Data</title>
+
+    <link rel="stylesheet" href="dojo/dojo/resources/dojo.css" />
+    <link rel="stylesheet" href="dojo/dijit/themes/claro/claro.css" />
+    <link rel="stylesheet" href="dojo/dojox/grid/resources/Grid.css" />
+ 
+    <script src="dojo/dojo/dojo.js"></script>
+
+    <script type="text/javascript">	
+      require(["dojox/charting/Chart",
+               "dojox/charting/themes/Claro",
+               "dojox/charting/plot2d/Lines",
+               "dojox/charting/StoreSeries",
+               "dojox/charting/action2d/Tooltip", 
+               "dojox/charting/plot2d/Pie",
+               "dojox/grid/DataGrid",
+               "dojo/store/Observable",
+               "dojo/store/Memory",
+               "dojo/data/ObjectStore",
+               "dojox/charting/plot2d/Markers",
+               "dojox/charting/axis2d/Default",	
+               "dojo/domReady!"], 
+      function(Chart, theme, LinesPlot, Memory, ObjectStore){      
+        dojoCharts = new DojoCharts(Chart, theme, LinesPlot, Memory, ObjectStore);
+        drawDojoCharts(Memory, ObjectStore)
+      });
+
+      function drawDojoCharts(Memory, ObjectStore){
+       // Get latest data 
+       var response = getFormattedViewData();
+       //dojoCharts.lineData = response.text();
+       dojoCharts.lineData = dojo.store.Observable(new dojo.store.Memory({data:{label:"A",items:response}}));
+       //dojoCharts.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
+       dojoCharts.lineSeries = new dojox.charting.StoreSeries(dojoCharts.lineData, {query: {"DEVICE_ID":"0003-0004", "SENSOR_ID":"CO2"}}, {x:"DT", y:"CUR_VALUE"});
+       dojoCharts.draw(Memory, ObjectStore);
+       setTimeout(function () {drawDojoCharts(Memory, ObjectStore);}, 5000);
+      };
+
+      DojoCharts.prototype.draw = function(Memory, ObjectStore) {
+        //this.lineChart.updateSeries("0003-0004", this.lineData);
+        this.lineSeries.fetch();
+        //this.lineChart.render();
+console.log(">>> fetched.");
+console.log(">>>" + this.lineSeries);
+      };
+
+      function DojoCharts(Chart, theme, LinesPlot, Memory, ObjectStore) {
+        // Retrieve the view data
+        var response = getFormattedViewData();
+        //this.lineData = response.text();   
+        this.lineData = dojo.store.Observable(new dojo.store.Memory({data:{label:"A",items:response}}));
+        //this.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
+
+        // Create the line chart
+        this.lineChart = new Chart("lineChart", { title: "Current CO2 Data", titlePos: "top"});
+        this.lineChart.setTheme(theme);
+        this.lineChart.addPlot("default", {type: LinesPlot,	markers: true, tension:"S" });
+        //this.lineChart.addAxis("x",{labelFunc:formatTimeLabel, fixLower: "none", fixUpper: "none", rotation: -45,  dropLabels: false });
+        //this.lineChart.addAxis("x",{fixLower: "none", fixUpper: "none", rotation: -45,  dropLabels: false });
+        this.lineChart.addAxis("x");
+        this.lineChart.addAxis("y", { min: 0, max: 3000, vertical: true, fixLower: "major", fixUpper: "major" });
+        this.lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":"0003-0004", "SENSOR_ID":"CO2"}}, {x:"DT", y:"CUR_VALUE"});
+        //this.lineChart.addSeries("lineSeries",this.lineData);
+        this.lineChart.addSeries("0003-0004", this.lineSeries) ;
+        //this.lineTooltip = new Tooltip(this.lineChart, "default");
+        this.lineChart.render();
+
+      }
+
+      function getFormattedViewData() {
+        var httpRequest = new XMLHttpRequest();
+        httpRequest.open("GET","data",false);
+        httpRequest.send();
+        return JSON.stringify(httpRequest.responseText);  
+        //return httpRequest.responseText;  
+      }
+
+      function formatTimeLabel(timeValue) {
+        var date = new Date();
+        date.setTime(timeValue);
+        var millis = date.getMilliseconds();
+        if (millis == 0) {
+          millis = "000";
+        }
+        return (date.getHours()+1) + ":" + date.getMinutes() + ":" + date.getSeconds() + "." + millis;
+      }
+
+    </script>
+  </head>
+
+  <body>
+    <h1>InfoSphere Streams Sample REST Application</h1><p>
+    <table cellpadding="0" cellspacing="0">
+      <tr><td id="lineChart" width="600" height="400"/></tr>
+    </table>
+  </body>
+</html>
