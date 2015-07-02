@@ -11,7 +11,7 @@
 
     <script type="text/javascript">	
       require(["dojox/charting/Chart",
-               "dojox/charting/themes/Claro",
+               "dojox/charting/themes/Shrooms",
                "dojox/charting/plot2d/Lines",
                "dojox/charting/StoreSeries",
                "dojox/charting/action2d/Tooltip", 
@@ -23,7 +23,6 @@
                "dojox/charting/widget/Legend",
                "dojox/charting/plot2d/Markers",
                "dojox/charting/axis2d/Default",	
-               //"dojox/charting/axis2d/Tooltip",	
                "dojo/domReady!"], 
       function(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Tooltip){      
         var Sensor = "MAG_Y";
@@ -38,38 +37,32 @@
 
       DojoCharts.prototype.draw = function(Memory, StoreSeries, ObjectStore, Sensor) {
         var response = getFormattedViewData();
-        //this.lineData = dojo.store.Observable(new dojo.store.Memory({data:{label:"A",items:response}}));
         this.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
         var lineSeries = this.lineChart.series;
         for (var i=0; i<lineSeries.length; i++) {
-          //this.lineChart.updateSeries(lineSeries[i].name,  new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":lineSeries[i].name, "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" }));
           this.lineChart.updateSeries(lineSeries[i].name,  new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":lineSeries[i].name, "SENSOR_ID":Sensor}}, function(items){ return { x:formatTimeLabel(items.DT), y:items.CUR_VALUE }}));
         }
         this.lineChart.render();
-//console.log(">>> "+typeof(this.lineSeries));
       };
 
       function DojoCharts(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Tooltip, Sensor) {
         // Retrieve the view data
         var response = getFormattedViewData();
-        //this.lineData = dojo.store.Observable(new dojo.store.Memory({data:{label:"A",items:response}}));
         this.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
 
         var seriesList = [];
         this.lineData.query({SENSOR_ID:Sensor}).forEach(function(device){
-//console.log(">>> " + device.DEVICE_ID);
           if ( seriesList.indexOf(device.DEVICE_ID)==-1 ) seriesList.push(device.DEVICE_ID);
         });
 
         // Create the line chart
-        this.lineChart = new Chart("lineChart", { title: "Current "+Sensor, titlePos: "top"});
+        this.lineChart = new Chart("lineChart", { title: "Current "+Sensor, titleGap:5, titleFont: "10pt Consolas"});
         this.lineChart.setTheme(theme);
-        this.lineChart.addPlot("default", {type: "Lines",	markers: true, });
-        this.lineChart.addAxis("x", { labelFunc:xAxisLabel, fixLower: "major", fixUpper: "major", rotation: -45});//,  dropLabels: false });
-        //this.lineChart.addAxis("x", { fixLower: "major", fixUpper: "major", rotation: -45, dropLabels: true }); //, microTickSpan: 0.041666666  });
-        this.lineChart.addAxis("y", { vertical: true, fixLower: "major", fixUpper: "major" });
+        this.lineChart.addPlot("default", {type: LinesPlot, markers: true, tension:"S" });
+        this.lineChart.addAxis("x", { labelFunc:xAxisLabel, fixLower: "major", fixUpper: "major", rotation: 0});//,  dropLabels: false });
+        this.lineChart.addAxis("y", { vertical: true, natural: false, fixLower: "major", fixUpper: "major" });
+
         var lineSeries;
-        //lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":"0003-0004", "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" });
         for (var i=0; i<seriesList.length; i++) {
           lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":seriesList[i], "SENSOR_ID":Sensor}}, function(items){ return { x:formatTimeLabel(items.DT), y:items.CUR_VALUE }});
           this.lineChart.addSeries(seriesList[i], lineSeries) ;
@@ -78,7 +71,6 @@
         //this.lineTooltip = new Tooltip(this.lineChart, "default");
         this.lineChart.render();
         var legend = new dojox.charting.widget.Legend({chart: this.lineChart, horizontal: false}, "legend");
-        //this.lineSeries.fetch();
 
       }
 
@@ -106,7 +98,7 @@
   <body>
     <h1>InfoSphere Streams Sample REST Application</h1><p>
     <table cellpadding="0" cellspacing="0">
-      <tr><td id="lineChart" width="600" height="400"></td><td id="legend"></td></tr>
+      <tr><td id="lineChart" width="600" height="200"></td><td id="legend"></td></tr>
     </table>
   </body>
 </html>
