@@ -1,5 +1,5 @@
-<!DOCTYPE HTML>
 <html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <head>
     <title>InfoSphere REST API Sample - View Data</title>
 
@@ -23,59 +23,58 @@
                "dojox/charting/widget/Legend",
                "dojox/charting/plot2d/Markers",
                "dojox/charting/axis2d/Default",	
+               //"dojox/charting/axis2d/Tooltip",	
                "dojo/domReady!"], 
-      function(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore){      
-        var Sensor = "ACC_Y";
-        dojoCharts = new DojoCharts(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Sensor);
+      function(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Tooltip){      
+        var Sensor = "MAG_Y";
+        dojoCharts = new DojoCharts(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Tooltip, Sensor);
         drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor);
       });
 
       function drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor){
-       // Get latest data 
-       //var response = getFormattedViewData();
-       //dojoCharts.lineData = response.text();
-       //dojoCharts.lineData = dojo.store.Observable(new dojo.store.Memory({data:{label:"A",items:response}}));
-//console.log(">>>\n" + response);
-       //dojoCharts.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
-       //dojoCharts.lineSeries = new dojox.charting.StoreSeries(dojoCharts.lineData, {query: {"DEVICE_ID":"0003-0004", "SENSOR_ID":"CO2"}}, { y:"CUR_VALUE"});
-       //dojoCharts.lineSeries = new dojox.charting.StoreSeries(dojoCharts.lineData, {query: {}}, "CUR_VALUE");
-       dojoCharts.draw(Memory, StoreSeries, ObjectStore, Sensor);
-       setTimeout(function () {drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor);}, 10000);
+        dojoCharts.draw(Memory, StoreSeries, ObjectStore, Sensor);
+        setTimeout(function () {drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor);}, 10000);
       };
 
       DojoCharts.prototype.draw = function(Memory, StoreSeries, ObjectStore, Sensor) {
         var response = getFormattedViewData();
+        //this.lineData = dojo.store.Observable(new dojo.store.Memory({data:{label:"A",items:response}}));
         this.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
         var lineSeries = this.lineChart.series;
         for (var i=0; i<lineSeries.length; i++) {
-          this.lineChart.updateSeries(lineSeries[i].name,  new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":lineSeries[i].name, "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" }));
+          //this.lineChart.updateSeries(lineSeries[i].name,  new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":lineSeries[i].name, "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" }));
+          this.lineChart.updateSeries(lineSeries[i].name,  new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":lineSeries[i].name, "SENSOR_ID":Sensor}}, function(items){ return { x:formatTimeLabel(items.DT), y:items.CUR_VALUE }}));
         }
         this.lineChart.render();
 //console.log(">>> "+typeof(this.lineSeries));
       };
 
-      function DojoCharts(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Sensor) {
+      function DojoCharts(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Tooltip, Sensor) {
         // Retrieve the view data
         var response = getFormattedViewData();
         //this.lineData = dojo.store.Observable(new dojo.store.Memory({data:{label:"A",items:response}}));
         this.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
 
+        var seriesList = [];
+        this.lineData.query({SENSOR_ID:Sensor}).forEach(function(device){
+//console.log(">>> " + device.DEVICE_ID);
+          if ( seriesList.indexOf(device.DEVICE_ID)==-1 ) seriesList.push(device.DEVICE_ID);
+        });
+
         // Create the line chart
-        this.lineChart = new Chart("lineChart", { title: "Current", titlePos: "top"});
+        this.lineChart = new Chart("lineChart", { title: "Current "+Sensor, titlePos: "top"});
         this.lineChart.setTheme(theme);
         this.lineChart.addPlot("default", {type: "Lines",	markers: true, });
-        this.lineChart.addAxis("x",{labelFunc:formatTimeLabel, fixLower: "none", fixUpper: "none", rotation: -45});//,  dropLabels: false });
-        //this.lineChart.addAxis("x",{fixLower: "none", fixUpper: "none", rotation: -45,  dropLabels: false });
-        this.lineChart.addAxis("y", { vertical: true, fixLower: "minor", fixUpper: "major" });
+        this.lineChart.addAxis("x", { labelFunc:xAxisLabel, fixLower: "major", fixUpper: "major", rotation: -45});//,  dropLabels: false });
+        //this.lineChart.addAxis("x", { fixLower: "major", fixUpper: "major", rotation: -45, dropLabels: true }); //, microTickSpan: 0.041666666  });
+        this.lineChart.addAxis("y", { vertical: true, fixLower: "major", fixUpper: "major" });
         var lineSeries;
-        lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":"0003-0004", "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" });
-        this.lineChart.addSeries("0003-0004", lineSeries) ;
-        lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":"0003-0005", "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" });
-        this.lineChart.addSeries("0003-0005", lineSeries) ;
-        lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":"0003-0006", "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" });
-        this.lineChart.addSeries("0003-0006", lineSeries) ;
-        lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":"0003-0007", "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" });
-        this.lineChart.addSeries("0003-0007", lineSeries) ;
+        //lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":"0003-0004", "SENSOR_ID":Sensor}}, { y: "CUR_VALUE" });
+        for (var i=0; i<seriesList.length; i++) {
+          lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":seriesList[i], "SENSOR_ID":Sensor}}, function(items){ return { x:formatTimeLabel(items.DT), y:items.CUR_VALUE }});
+          this.lineChart.addSeries(seriesList[i], lineSeries) ;
+          console.log(seriesList[i]);
+        }
         //this.lineTooltip = new Tooltip(this.lineChart, "default");
         this.lineChart.render();
         var legend = new dojox.charting.widget.Legend({chart: this.lineChart, horizontal: false}, "legend");
@@ -88,28 +87,18 @@
         httpRequest.open("GET","data",false);
         httpRequest.send();
         return JSON.parse( httpRequest.responseText );  
-/*
-        dojo.xhrGet({
-          url: "data",
-          sync: true,
-          handleAs: "json"
-        }).then(function(jsondata){return jsondata;});
-*/
       }
 
       function formatTimeLabel(timeValue) {
         var dt = new Date(Date.parse(timeValue.replace(" ","T")));
-        //var dt = new Date();
-        //dt.setTime(timeValue);
-        var millis = dt.getMilliseconds();
-        if (millis == 0) {
-          millis = "000";
-        }
-        //return (dt.getHours()+1) + ":" + dt.getMinutes() + ":" + dt.getSeconds() + "." + millis;
-        return (dt.getTime());
-        //return (dt.getMonth() + 1) + "/" + dt.getDate();
+        return (dt);
       }
 
+      function xAxisLabel(timeValue) {
+        var dt = new Date();
+        dt.setTime(timeValue);
+        return dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds(); 
+      }
     </script>
   </head>
 
