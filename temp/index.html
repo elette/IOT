@@ -97,7 +97,8 @@
       function xAxisLabel(timeValue) {
         var dt = new Date();
         dt.setTime(timeValue);
-        return dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds(); 
+        var rtnValue = dt.toLocaleFormat('%T');
+        return rtnValue;
       }
     </script>
   </head>
