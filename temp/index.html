@@ -27,28 +27,45 @@
       function(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Tooltip){      
         var Sensor = "MAG_Y";
         dojoCharts = new DojoCharts(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Tooltip, Sensor);
-        drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor);
+        //drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor);
+        drawDojoCharts(Sensor);
       });
 
-      function drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor){
-        dojoCharts.draw(Memory, StoreSeries, ObjectStore, Sensor);
-        setTimeout(function () {drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor);}, 10000);
+      var run;
+      var legend;
+      //function drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor){
+      function drawDojoCharts(Sensor){
+        //dojoCharts.draw(Memory, StoreSeries, ObjectStore, Sensor);
+        dojoCharts.draw(Sensor);
+console.log("selected sensor: " + Sensor);
+        //setTimeout(function () {drawDojoCharts(Memory, StoreSeries, ObjectStore, Sensor);}, 10000);
+        run = setTimeout(function () {drawDojoCharts(Sensor);}, 10000);
       };
 
-      DojoCharts.prototype.draw = function(Memory, StoreSeries, ObjectStore, Sensor) {
+      //DojoCharts.prototype.draw = function(Memory, StoreSeries, ObjectStore, Sensor) {
+      DojoCharts.prototype.draw = function(Sensor) {
         var response = getFormattedViewData();
         this.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
         var lineSeries = this.lineChart.series;
         for (var i=0; i<lineSeries.length; i++) {
           this.lineChart.updateSeries(lineSeries[i].name,  new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":lineSeries[i].name, "SENSOR_ID":Sensor}}, function(items){ return { x:formatTimeLabel(items.DT), y:items.CUR_VALUE }}));
         }
-        this.lineChart.render();
+        this.lineChart.title = "Current " + Sensor;
+        this.lineChart.fullRender();
+        legend.refresh();
+        //legend = new dojox.charting.widget.Legend({chart: this.lineChart, horizontal: false}, "legend");
       };
 
       function DojoCharts(Chart, theme, LinesPlot, Memory, StoreSeries, ObjectStore, Tooltip, Sensor) {
         // Retrieve the view data
         var response = getFormattedViewData();
         this.lineData = dojo.store.Observable(new dojo.store.Memory({data:response}));
+
+        var sensorList = [];
+        this.lineData.query({}).forEach(function(sensor){
+          if ( sensorList.indexOf(sensor.SENSOR_ID)==-1 ) sensorList.push(sensor.SENSOR_ID);
+        });
+        drawList(sensorList);
 
         var seriesList = [];
         this.lineData.query({SENSOR_ID:Sensor}).forEach(function(device){
@@ -66,11 +83,11 @@
         for (var i=0; i<seriesList.length; i++) {
           lineSeries = new dojox.charting.StoreSeries(this.lineData, {query: {"DEVICE_ID":seriesList[i], "SENSOR_ID":Sensor}}, function(items){ return { x:formatTimeLabel(items.DT), y:items.CUR_VALUE }});
           this.lineChart.addSeries(seriesList[i], lineSeries) ;
-          console.log(seriesList[i]);
+console.log(seriesList[i]);
         }
         //this.lineTooltip = new Tooltip(this.lineChart, "default");
         this.lineChart.render();
-        var legend = new dojox.charting.widget.Legend({chart: this.lineChart, horizontal: false}, "legend");
+        legend = new dojox.charting.widget.Legend({chart: this.lineChart, horizontal: false}, "legend");
 
       }
 
@@ -92,12 +109,22 @@
         var rtnValue = dt.toLocaleFormat('%T');
         return rtnValue;
       }
+
+      function drawList(List) {
+        var str='';
+        for (var i=0; i<List.length; i++) {
+          str += '<INPUT type="radio" name="sensor" value="' + List[i] + '" onchange="javascript:clearTimeout(run); drawDojoCharts(this.value);">' + List[i];
+        }
+console.log(str);        
+        document.getElementById("SensorList").innerHTML = str;
+      }
     </script>
   </head>
 
   <body>
     <h1>InfoSphere Streams Sample REST Application</h1><p>
     <table cellpadding="0" cellspacing="0">
+      <tr><td colspan="2" id="SensorList"></td></tr>
       <tr><td id="lineChart" width="600" height="200"></td><td id="legend"></td></tr>
     </table>
   </body>
