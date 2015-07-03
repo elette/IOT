@@ -231,7 +231,10 @@ private static class CustomizedHostnameVerifier implements HostnameVerifier {
     Iterator<String> i;
     
     synchronized(_formattedData) {
+      _formattedData.setLength(0);
+      //_formattedData.append("{");
       _formattedData.append(lineData) ;
+      //_formattedData.append("}");
     }
   }
 

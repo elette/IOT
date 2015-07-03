@@ -106,16 +106,16 @@ console.log(seriesList[i]);
       function xAxisLabel(timeValue) {
         var dt = new Date();
         dt.setTime(timeValue);
-        var rtnValue = dt.toLocaleFormat('%T');
+        var rtnValue = dt.toLocaleFormat('%H:%M:%S');
         return rtnValue;
       }
 
       function drawList(List) {
         var str='';
         for (var i=0; i<List.length; i++) {
-          str += '<INPUT type="radio" name="sensor" value="' + List[i] + '" onchange="javascript:clearTimeout(run); drawDojoCharts(this.value);">' + List[i];
+          str += '&nbsp;<INPUT type="radio" name="sensor" value="' + List[i] + '" onchange="javascript:clearTimeout(run); drawDojoCharts(this.value);">' + List[i];
         }
-console.log(str);        
+//console.log(str);        
         document.getElementById("SensorList").innerHTML = str;
       }
     </script>
